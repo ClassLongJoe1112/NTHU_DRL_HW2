@@ -115,7 +115,7 @@ class Agent:
         self.prev_action = 0 # initialize as NOOP
         self.pick_action_flag = False
 
-        self.load("110060062_hw2_data.py")
+        self.load("110060062_hw2_data.py", map_location=torch.device('cpu'))
 
     def init_target_model(self): # used only before training
         self.target_model = DQN().to(device)
