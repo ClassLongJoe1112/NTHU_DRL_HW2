@@ -33,12 +33,12 @@ class NoisyLinear(torch.nn.Linear):
         self.bias.data.uniform_(-std, std)
 
     def forward(self, input):
-        # if self.training:
-        weight = self.weight + self.sigma_weight * self.epsilon_weight.data.to(self.weight.device)
-        bias = self.bias + self.sigma_bias * self.epsilon_bias.data.to(self.bias.device)
-        # else:
-        #     weight = self.weight
-        #     bias = self.bias
+        if self.training:
+            weight = self.weight + self.sigma_weight * self.epsilon_weight.data.to(self.weight.device)
+            bias = self.bias + self.sigma_bias * self.epsilon_bias.data.to(self.bias.device)
+        else:
+            weight = self.weight
+            bias = self.bias
 
         output = torch.nn.functional.linear(input, weight, bias)
         return output
@@ -78,26 +78,6 @@ class DQN(torch.nn.Module):
         self.value_stream.reset_noise()
         self.advantage_stream.reset_noise()
 
-    def save_mu_state_dict(self):
-        state_dict = self.state_dict()
-        mu_state_dict = {}
-        for key, value in state_dict.items():
-            if 'sigma' not in key and 'epsilon' not in key:
-                mu_state_dict[key] = value
-            else:
-                mu_state_dict[key] = torch.zeros_like(value)
-        return mu_state_dict
-    
-    def load_mu_state_dict(self, state_dict, strict=True):
-        filtered_state_dict = {}
-        for key, value in state_dict.items():
-            if 'sigma' not in key and 'epsilon' not in key:
-                filtered_state_dict.update({key: value})
-                print(value.type)
-            else:
-                filtered_state_dict.update({key: torch.empty(value.shape)})
-        super().load_state_dict(filtered_state_dict, strict)
-
 class Agent:
     def __init__(self):
         
@@ -118,7 +98,7 @@ class Agent:
         self.load("110060062_hw2_data.py")
 
     def init_target_model(self): # used only before training
-        self.target_model = DQN().to(device)
+        self.target_model = DQN()#.to(device)
         self.target_model.load_state_dict(self.model.state_dict())
         for param in self.target_model.parameters():
             param.requires_grad = False
@@ -217,6 +197,7 @@ class Agent:
         self.target_model.reset_noise()
 
     def load(self, name):
+        self.model.eval()
         self.model.load_state_dict(torch.load(name, map_location=torch.device('cpu')))
 
     def save(self, name):
